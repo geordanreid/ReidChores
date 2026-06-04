@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family Chore Tracker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f7f6f2; --bg3: #f0efe9;
+    --text: #1a1a18; --text2: #5f5e5a; --text3: #9e9d99;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --green: #3b6d11; --green-bg: #eaf3de; --green-mid: #639922;
+    --amber: #854f0b; --amber-bg: #faeeda; --amber-mid: #ba7517;
+    --blue: #0c447c; --blue-bg: #e6f1fb; --blue-mid: #185fa5;
+    --red: #791f1f; --red-bg: #fcebeb; --red-mid: #a32d2d;
+    --font: -apple-system, 'Segoe UI', system-ui, sans-serif;
+    --radius: 8px; --radius-lg: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
+      --text: #f0efe9; --text2: #a8a79f; --text3: #6e6d68;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+      --green: #97c459; --green-bg: #1a2e0a; --green-mid: #639922;
+      --amber: #ef9f27; --amber-bg: #2a1f05; --amber-mid: #ba7517;
+      --blue: #85b7eb; --blue-bg: #04244f; --blue-mid: #185fa5;
+      --red: #f09595; --red-bg: #2e0d0d; --red-mid: #a32d2d;
+    }
+  }
+  body { font-family: var(--font); background: var(--bg3); color: var(--text); min-height: 100vh; }
+  .shell { max-width: 720px; margin: 0 auto; padding: 16px; }
+  .app-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding: 14px 18px; background: var(--bg); border-radius: var(--radius-lg); border: 0.5px solid var(--border); flex-wrap: wrap; gap: 10px; }
+  .app-header h1 { font-size: 17px; font-weight: 600; }
+  .app-header .sub { font-size: 12px; color: var(--text3); margin-top: 1px; }
+  .mode-tabs { display: flex; background: var(--bg2); border-radius: var(--radius); padding: 3px; gap: 3px; }
+  .mode-tab { padding: 7px 16px; border-radius: 6px; border: none; background: none; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text2); transition: all 0.15s; font-family: var(--font); }
+  .mode-tab.active { background: var(--bg); color: var(--text); box-shadow: var(--shadow); }
+  .card { background: var(--bg); border-radius: var(--radius-lg); border: 0.5px solid var(--border); overflow: hidden; margin-bottom: 12px; }
+  .card-header { padding: 13px 16px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .card-header h2 { font-size: 14px; font-weight: 600; }
+  .card-body { padding: 0 16px; }
+  .card-body-pad { padding: 16px; }
+  .kids-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .kid-tab { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; border: 0.5px solid var(--border2); background: none; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text2); transition: all 0.15s; font-family: var(--font); }
+  .kid-tab.active { border-color: var(--blue-mid); background: var(--blue-bg); color: var(--blue); }
+  .avatar { border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+  .wallet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .wallet-tile { background: var(--bg2); border-radius: var(--radius); padding: 12px 14px; }
+  .wlabel { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .wvalue { font-size: 22px; font-weight: 600; }
+  .wvalue.pos { color: var(--green-mid); }
+  .week-nav { display: flex; align-items: center; gap: 6px; }
+  .week-nav button { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0.5px solid var(--border2); border-radius: var(--radius); background: none; cursor: pointer; color: var(--text); font-size: 14px; font-family: var(--font); }
+  .week-nav button:hover { background: var(--bg2); }
+  .week-label { font-size: 12px; font-weight: 500; min-width: 150px; text-align: center; color: var(--text2); }
+  .chore-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+  .chore-item:last-child { border-bottom: none; }
+  .chore-check { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--border2); display: flex; align-items: center; justify-content: center; cursor: pointer; background: none; font-size: 14px; flex-shrink: 0; transition: all 0.15s; font-family: var(--font); }
+  .chore-check:hover:not(:disabled) { border-color: var(--amber-mid); background: var(--amber-bg); }
+  .chore-check.kid-done { background: var(--amber-bg); border-color: var(--amber-mid); color: var(--amber); }
+  .chore-check.verified { background: var(--green-bg); border-color: var(--green-mid); color: var(--green); cursor: default; }
+  .chore-info { flex: 1; min-width: 0; }
+  .chore-name { font-size: 14px; }
+  .chore-name.done { text-decoration: line-through; color: var(--text3); }
+  .badge { display: inline-block; margin-top: 3px; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .badge-pending { background: var(--amber-bg); color: var(--amber); }
+  .badge-verified { background: var(--green-bg); color: var(--green); }
+  .chore-amount { font-size: 14px; font-weight: 600; color: var(--text3); }
+  .btn { padding: 8px 14px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: none; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text); transition: all 0.15s; font-family: var(--font); white-space: nowrap; }
+  .btn:hover { background: var(--bg2); }
+  .btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+  .btn-green { background: var(--green-bg); color: var(--green); border-color: var(--green-mid); }
+  .btn-green:hover { opacity: 0.82; }
+  .btn-blue { background: var(--blue-bg); color: var(--blue); border-color: var(--blue-mid); }
+  .btn-blue:hover { opacity: 0.82; }
+  .btn-red { background: var(--red-bg); color: var(--red); border-color: var(--red-mid); }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+  .pending-row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 0.5px solid var(--border); flex-wrap: wrap; }
+  .pending-row:last-child { border-bottom: none; }
+  .pinfo { flex: 1; min-width: 140px; }
+  .pname { font-size: 13px; font-weight: 500; }
+  .pmeta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .pamount { font-size: 14px; font-weight: 600; color: var(--green-mid); }
+  .kid-summary-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+  .kid-summary-card { background: var(--bg2); border-radius: var(--radius-lg); padding: 16px; flex: 1; min-width: 160px; }
+  .ks-row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; }
+  .ks-row .klabel { color: var(--text3); }
+  .ks-row .kval { font-weight: 600; }
+  .ks-row .kval.pos { color: var(--green-mid); }
+  .manage-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 0.5px solid var(--border); }
+  .manage-row:last-child { border-bottom: none; }
+  .mname { flex: 1; font-size: 13px; }
+  .mamount { font-size: 13px; font-weight: 600; color: var(--text3); }
+  .del-btn { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 20px; line-height: 1; padding: 2px 5px; border-radius: 4px; font-family: var(--font); }
+  .del-btn:hover { background: var(--red-bg); color: var(--red); }
+  .add-row { display: flex; gap: 8px; padding: 12px 0; flex-wrap: wrap; align-items: center; }
+  input[type=text], input[type=number], input[type=password], input[type=email] {
+    padding: 8px 12px; border: 0.5px solid var(--border2); border-radius: var(--radius);
+    background: var(--bg2); color: var(--text); font-size: 13px; font-family: var(--font);
+    outline: none; transition: border-color 0.15s;
+  }
+  input:focus { border-color: var(--blue-mid); }
+  .history-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; gap: 8px; }
+  .history-row:last-child { border-bottom: none; }
+  .hkid { font-weight: 500; }
+  .hamount { color: var(--green-mid); font-weight: 600; }
+  .hdate { color: var(--text3); font-size: 11px; }
+  .pin-wrap { max-width: 280px; margin: 0 auto; text-align: center; padding: 24px 0; }
+  .pin-wrap h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .pin-wrap p { font-size: 13px; color: var(--text2); margin-bottom: 20px; line-height: 1.5; }
+  .pin-dots { display: flex; gap: 14px; justify-content: center; margin-bottom: 20px; }
+  .pin-dot { width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--border2); transition: all 0.1s; }
+  .pin-dot.filled { background: var(--text); border-color: var(--text); }
+  .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .pin-key { padding: 16px; font-size: 20px; font-weight: 500; border: 0.5px solid var(--border); border-radius: var(--radius-lg); background: var(--bg2); cursor: pointer; color: var(--text); transition: all 0.12s; font-family: var(--font); }
+  .pin-key:hover { background: var(--bg3); }
+  .pin-key:active { transform: scale(0.95); }
+  .pin-error { color: var(--red); font-size: 13px; margin-top: 10px; min-height: 20px; }
+  .hint-text { font-size: 11px; color: var(--text3); margin-top: 10px; }
+  .empty-state { text-align: center; padding: 28px 16px; color: var(--text3); font-size: 14px; line-height: 1.6; }
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--text); color: var(--bg); padding: 10px 22px; border-radius: 999px; font-size: 13px; font-weight: 500; opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 9999; white-space: nowrap; max-width: 90vw; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .section-divider { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); padding: 16px 0 6px; }
+  .tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--blue-bg); color: var(--blue); margin-left: 6px; }
+  .info-box { background: var(--blue-bg); border: 0.5px solid var(--blue-mid); border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: var(--blue); line-height: 1.5; margin-bottom: 12px; }
+  @media (max-width: 500px) {
+    .wallet-tile .wvalue { font-size: 18px; }
+    .week-label { min-width: 110px; font-size: 11px; }
+    .kid-summary-grid { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="app-header">
+    <div>
+      <h1>🏠 Chore Tracker</h1>
+      <div class="sub" id="headerSub">Family edition</div>
+    </div>
+    <div class="mode-tabs" id="modeTabs">
+      <button class="mode-tab active" data-mode="kid">Kids</button>
+      <button class="mode-tab" data-mode="parent">Parents</button>
+    </div>
+  </div>
+  <div id="main"></div>
+  <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:8px;padding-bottom:8px;">Data saved locally on this device</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'choretracker_v3';
+const DEFAULT_PIN = '1234';
+
+const KID_COLORS = [
+  { bg: '#e6f1fb', text: '#0c447c', mid: '#185fa5' },
+  { bg: '#eaf3de', text: '#27500a', mid: '#639922' },
+  { bg: '#faeeda', text: '#633806', mid: '#ba7517' },
+  { bg: '#eeedfe', text: '#26215c', mid: '#534ab7' },
+  { bg: '#fbeaf0', text: '#4b1528', mid: '#993556' },
+];
+
+// ─── Entry key format: "YYYY-MM-DD_choreId"
+// weekKey = "YYYY-MM-DD" (Monday of that week)
+// full key = weekKey + "_" + choreId  e.g. "2025-06-02_c1"
+// To extract: split on first underscore only → parts[0]=weekKey, parts[1]=choreId
+function splitEntryKey(key) {
+  const idx = key.indexOf('_');
+  return { weekKey: key.slice(0, idx), choreId: key.slice(idx + 1) };
+}
+function makeEntryKey(weekKey, choreId) { return weekKey + '_' + choreId; }
+
+function defaultData() {
+  return {
+    pin: DEFAULT_PIN,
+    kids: [
+      { id: 'jay',    name: 'Jay',    colorIdx: 0, initials: 'JA', email: '' },
+      { id: 'henrik', name: 'Henrik', colorIdx: 1, initials: 'HE', email: '' },
+    ],
+    chores: [
+      { id: 'c1', name: 'Clean bathroom',    amount: 10 },
+      { id: 'c2', name: 'Baking',            amount: 5  },
+      { id: 'c3', name: 'Vacuum – Basement', amount: 5  },
+      { id: 'c4', name: 'Vacuum – Main',     amount: 10 },
+      { id: 'c5', name: 'Vacuum – Upstairs', amount: 5  },
+      { id: 'c6', name: 'Room deep clean',   amount: 20 },
+    ],
+    // entries[kidId][weekKey_choreId] = { kidDone: bool, verified: bool }
+    entries: {},
+    // payments[n] = { kidId, amount, date, paidEntryKeys: [...] }
+    payments: [],
+  };
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultData();
+    const saved = JSON.parse(raw);
+    const def = defaultData();
+    return {
+      ...def,
+      ...saved,
+      kids: saved.kids || def.kids,
+      chores: saved.chores || def.chores,
+      entries: saved.entries || {},
+      payments: saved.payments || [],
+    };
+  } catch(e) { return defaultData(); }
+}
+
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+let data = loadData();
+
+let ui = {
+  mode: 'kid',
+  parentUnlocked: false,
+  selectedKid: '',
+  weekOffset: 0,
+  pinInput: '',
+  pinError: '',
+};
+
+// Auto-select kid based on URL hash (for Google account mapping)
+// e.g. index.html#jay or index.html#henrik
+function initSelectedKid() {
+  const hash = window.location.hash.replace('#', '').toLowerCase();
+  const byHash = data.kids.find(k => k.id === hash || k.name.toLowerCase() === hash);
+  if (byHash) { ui.selectedKid = byHash.id; return; }
+  // Check if email in URL params matches a kid
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get('email') || '';
+  if (email) {
+    const byEmail = data.kids.find(k => k.email && k.email.toLowerCase() === email.toLowerCase());
+    if (byEmail) { ui.selectedKid = byEmail.id; return; }
+  }
+  ui.selectedKid = data.kids[0]?.id || '';
+}
+initSelectedKid();
+
+// ─── Week helpers
+function getWeekKey(offset) {
+  const d = new Date();
+  const day = d.getDay() === 0 ? 7 : d.getDay(); // treat Sunday as 7
+  d.setDate(d.getDate() - day + 1 + offset * 7);
+  // Zero out time to avoid timezone issues
+  d.setHours(0,0,0,0);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
+function getWeekLabel(offset) {
+  const wk = getWeekKey(offset);
+  const d = new Date(wk + 'T12:00:00');
+  const end = new Date(d); end.setDate(end.getDate() + 6);
+  const fmt = x => x.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+  return fmt(d) + ' – ' + fmt(end);
+}
+
+// ─── Entry helpers
+function getEntry(kidId, choreId, weekKey) {
+  const key = makeEntryKey(weekKey, choreId);
+  return (data.entries[kidId] && data.entries[kidId][key]) || { kidDone: false, verified: false };
+}
+
+function setEntry(kidId, choreId, weekKey, patch) {
+  if (!data.entries[kidId]) data.entries[kidId] = {};
+  const key = makeEntryKey(weekKey, choreId);
+  data.entries[kidId][key] = { ...(data.entries[kidId][key] || {}), ...patch };
+  save();
+}
+
+// ─── Wallet: sum all verified entries minus paid-out ones
+function getWallet(kidId) {
+  const kidEntries = data.entries[kidId] || {};
+  // Collect all entry keys that have been paid out
+  const paidKeys = new Set(
+    data.payments
+      .filter(p => p.kidId === kidId)
+      .flatMap(p => p.paidEntryKeys || [])
+  );
+
+  let balance = 0, totalPaid = 0, totalEarned = 0;
+
+  Object.entries(kidEntries).forEach(([key, val]) => {
+    if (!val.verified) return;
+    const { choreId } = splitEntryKey(key);
+    const chore = data.chores.find(c => c.id === choreId);
+    if (!chore) return;
+    totalEarned += chore.amount;
+    if (paidKeys.has(key)) totalPaid += chore.amount;
+    else balance += chore.amount;
+  });
+
+  return { totalEarned, totalPaid, balance };
+}
+
+// ─── Get all items kid has marked done but parent hasn't verified
+function getPending() {
+  const pending = [];
+  data.kids.forEach(kid => {
+    Object.entries(data.entries[kid.id] || {}).forEach(([key, val]) => {
+      if (!val.kidDone || val.verified) return;
+      const { weekKey, choreId } = splitEntryKey(key);
+      const chore = data.chores.find(c => c.id === choreId);
+      if (chore) pending.push({
+        kidId: kid.id, kidName: kid.name,
+        choreId, choreName: chore.name,
+        amount: chore.amount, weekKey, key
+      });
+    });
+  });
+  pending.sort((a, b) => b.weekKey.localeCompare(a.weekKey));
+  return pending;
+}
+
+function kidColor(kid) { return KID_COLORS[kid.colorIdx % KID_COLORS.length]; }
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// ─── Render
+function render() {
+  document.getElementById('main').innerHTML = buildView();
+  const kid = data.kids.find(k => k.id === ui.selectedKid);
+  document.getElementById('headerSub').textContent =
+    ui.mode === 'parent' && ui.parentUnlocked ? 'Parent dashboard' :
+    kid ? kid.name + "'s chores" : 'Family edition';
+  attachEvents();
+}
+
+function buildView() {
+  if (ui.mode === 'parent' && !ui.parentUnlocked) return buildPin();
+  if (ui.mode === 'parent') return buildParent();
+  return buildKid();
+}
+
+// ─── PIN screen
+function buildPin() {
+  const filled = ui.pinInput.length;
+  const dots = [0,1,2,3].map(i =>
+    `<div class="pin-dot ${i < filled ? 'filled' : ''}"></div>`
+  ).join('');
+  return `<div class="card"><div class="card-body-pad">
+    <div class="pin-wrap">
+      <h2>Parent access</h2>
+      <p>Enter your PIN to verify chores,<br>manage settings and record payments</p>
+      <div class="pin-dots">${dots}</div>
+      <div class="pin-keypad">
+        ${[1,2,3,4,5,6,7,8,9,'','0','⌫'].map(k =>
+          k === '' ? `<div></div>` :
+          `<button class="pin-key" data-pin="${k}">${k}</button>`
+        ).join('')}
+      </div>
+      <div class="pin-error">${ui.pinError}</div>
+      <div class="hint-text">Default PIN: 1234 — change it in settings</div>
+    </div>
+  </div></div>`;
+}
+
+// ─── Kid view
+function buildKid() {
+  if (!data.kids.length) return `<div class="card"><div class="empty-state">No kids set up yet.<br>Switch to Parent view to get started.</div></div>`;
+  const kid = data.kids.find(k => k.id === ui.selectedKid) || data.kids[0];
+  const wk = getWeekKey(ui.weekOffset);
+  const wallet = getWallet(kid.id);
+  const col = kidColor(kid);
+
+  const tabs = data.kids.map(k => {
+    const c = kidColor(k);
+    return `<button class="kid-tab ${k.id === kid.id ? 'active' : ''}" data-kid="${k.id}">
+      <div class="avatar" style="width:22px;height:22px;font-size:9px;background:${c.bg};color:${c.text}">${k.initials}</div>
+      ${k.name}
+    </button>`;
+  }).join('');
+
+  const choreRows = data.chores.map(ch => {
+    const e = getEntry(kid.id, ch.id, wk);
+    const checkCls = e.verified ? 'verified' : e.kidDone ? 'kid-done' : '';
+    const icon = (e.verified || e.kidDone) ? '✓' : '';
+    const badge = e.verified
+      ? `<span class="badge badge-verified">Verified ✓</span>`
+      : e.kidDone
+        ? `<span class="badge badge-pending">Waiting for approval</span>`
+        : '';
+    return `<div class="chore-item">
+      <button class="chore-check ${checkCls}" data-toggle="${ch.id}"${e.verified ? ' disabled' : ''}>${icon}</button>
+      <div class="chore-info">
+        <div class="chore-name ${(e.verified || e.kidDone) ? 'done' : ''}">${ch.name}</div>
+        ${badge}
+      </div>
+      <div class="chore-amount">$${ch.amount}</div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="kids-tabs">${tabs}</div>
+    <div class="wallet-grid">
+      <div class="wallet-tile"><div class="wlabel">Total earned</div><div class="wvalue pos">$${wallet.totalEarned}</div></div>
+      <div class="wallet-tile"><div class="wlabel">Paid out</div><div class="wvalue">$${wallet.totalPaid}</div></div>
+      <div class="wallet-tile"><div class="wlabel">Balance</div><div class="wvalue pos">$${wallet.balance}</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <h2>Chores</h2>
+        <div class="week-nav">
+          <button data-week="-1">‹</button>
+          <span class="week-label">${getWeekLabel(ui.weekOffset)}</span>
+          <button data-week="1">›</button>
+        </div>
+      </div>
+      <div class="card-body">${choreRows || '<div class="empty-state">No chores yet.</div>'}</div>
+    </div>
+    <div style="font-size:12px;color:var(--text3);padding:2px 2px 8px">
+      Tap a circle to mark a chore done — a parent will verify it and add it to your wallet 🎉
+    </div>`;
+}
+
+// ─── Parent view
+function buildParent() {
+  const pending = getPending();
+  const wk = getWeekKey(ui.weekOffset);
+
+  const kidCards = data.kids.map(kid => {
+    const w = getWallet(kid.id);
+    const col = kidColor(kid);
+    const weekEarned = data.chores.reduce((sum, ch) => {
+      const e = getEntry(kid.id, ch.id, wk);
+      return sum + (e.verified ? ch.amount : 0);
+    }, 0);
+    return `<div class="kid-summary-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div class="avatar" style="width:36px;height:36px;font-size:13px;background:${col.bg};color:${col.text}">${kid.initials}</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;">${kid.name}</div>
+          ${kid.email ? `<div style="font-size:10px;color:var(--text3)">${kid.email}</div>` : ''}
+        </div>
+      </div>
+      <div class="ks-row"><span class="klabel">Balance owed</span><span class="kval pos">$${w.balance}</span></div>
+      <div class="ks-row"><span class="klabel">This week</span><span class="kval">$${weekEarned}</span></div>
+      <div class="ks-row"><span class="klabel">All-time earned</span><span class="kval">$${w.totalEarned}</span></div>
+      <div class="ks-row"><span class="klabel">All-time paid</span><span class="kval">$${w.totalPaid}</span></div>
+      <div style="margin-top:12px;">
+        <button class="btn btn-green btn-sm" data-pay="${kid.id}"${w.balance <= 0 ? ' disabled' : ''}>
+          Pay $${w.balance}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const pendingRows = pending.length === 0
+    ? `<div class="empty-state">✅ All chores verified!</div>`
+    : pending.map(p => `
+      <div class="pending-row">
+        <div class="pinfo">
+          <div class="pname">${p.kidName} — ${p.choreName}</div>
+          <div class="pmeta">Week of ${p.weekKey}</div>
+        </div>
+        <div class="pamount">+$${p.amount}</div>
+        <button class="btn btn-green btn-sm" data-verify="${p.kidId}|||${p.choreId}|||${p.weekKey}">✓ Approve</button>
+        <button class="btn btn-red btn-sm" data-reject="${p.kidId}|||${p.choreId}|||${p.weekKey}">✗ Undo</button>
+      </div>`).join('');
+
+  const choreManageRows = data.chores.map(ch =>
+    `<div class="manage-row">
+      <span class="mname">${ch.name}</span>
+      <span class="mamount">$${ch.amount}</span>
+      <button class="del-btn" data-delchore="${ch.id}">×</button>
+    </div>`).join('');
+
+  const kidManageRows = data.kids.map(k =>
+    `<div class="manage-row">
+      <span class="mname">${k.name}</span>
+      <span class="mamount" style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;">${k.email || '<span style="color:var(--text3);font-weight:400">no email set</span>'}</span>
+      <button class="btn btn-sm" data-editkid="${k.id}" style="font-size:11px;">Edit</button>
+      ${data.kids.length > 1 ? `<button class="del-btn" data-delkid="${k.id}">×</button>` : ''}
+    </div>`).join('');
+
+  const payHistory = [...data.payments].reverse().slice(0, 12).map(p => {
+    const kid = data.kids.find(k => k.id === p.kidId);
+    return `<div class="history-row">
+      <span class="hkid">${kid ? kid.name : p.kidId}</span>
+      <span class="hamount">$${p.amount}</span>
+      <span class="hdate">${p.date}</span>
+    </div>`;
+  }).join('') || `<div style="padding:12px 0;font-size:13px;color:var(--text3)">No payments yet</div>`;
+
+  return `
+    <div class="card">
+      <div class="card-header">
+        <h2>Wallet overview</h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div class="week-nav">
+            <button data-week="-1">‹</button>
+            <span class="week-label">${getWeekLabel(ui.weekOffset)}</span>
+            <button data-week="1">›</button>
+          </div>
+          <button class="btn btn-sm" data-lock>🔒 Lock</button>
+        </div>
+      </div>
+      <div class="card-body-pad"><div class="kid-summary-grid">${kidCards}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Pending verification
+          ${pending.length > 0 ? `<span class="tag">${pending.length}</span>` : ''}
+        </h2>
+      </div>
+      <div class="card-body">${pendingRows}</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2>Payment history</h2></div>
+      <div class="card-body">${payHistory}</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2>⚙️ Manage chores</h2></div>
+      <div class="card-body">
+        ${choreManageRows}
+        <div class="add-row">
+          <input type="text" id="newChoreName" placeholder="Chore name" style="flex:1;min-width:110px;">
+          <input type="number" id="newChoreAmt" placeholder="$" min="1" style="width:60px;">
+          <button class="btn btn-blue btn-sm" data-addchore>+ Add</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2>👨‍👩‍👧‍👦 Manage kids</h2></div>
+      <div class="card-body-pad">
+        <div class="info-box">
+          💡 <strong>Tip:</strong> Set each kid's Google email below. When they sign in via Cloudflare Access, add <code>?email=their@gmail.com</code> to the URL in the Cloudflare app policy — their name will be auto-selected. Or just use URL hash: <code>index.html#jay</code>
+        </div>
+        ${kidManageRows}
+        <div class="add-row">
+          <input type="text" id="newKidName" placeholder="Name" style="width:100px;">
+          <input type="text" id="newKidEmail" placeholder="Google email (optional)" style="flex:1;min-width:140px;">
+          <button class="btn btn-blue btn-sm" data-addkid>+ Add</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="editKidPanel"></div>
+
+    <div class="card">
+      <div class="card-header"><h2>🔐 Change PIN</h2></div>
+      <div class="card-body-pad">
+        <div class="add-row">
+          <input type="password" id="newPin" placeholder="New 4-digit PIN" maxlength="4" style="width:150px;">
+          <button class="btn btn-sm" data-changepin>Save</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function buildEditKidPanel(kidId) {
+  const kid = data.kids.find(k => k.id === kidId);
+  if (!kid) return '';
+  return `<div class="card" style="border-color:var(--blue-mid)">
+    <div class="card-header"><h2>Edit: ${kid.name}</h2></div>
+    <div class="card-body-pad">
+      <div class="add-row">
+        <input type="text" id="editKidName" placeholder="Name" value="${kid.name}" style="width:110px;">
+        <input type="email" id="editKidEmail" placeholder="Google email" value="${kid.email||''}" style="flex:1;">
+        <button class="btn btn-blue btn-sm" data-savekid="${kidId}">Save</button>
+        <button class="btn btn-sm" data-canceledit>Cancel</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── Events
+function attachEvents() {
+  const main = document.getElementById('main');
+
+  // Mode tabs
+  document.querySelectorAll('.mode-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      ui.mode = btn.dataset.mode;
+      ui.pinInput = '';
+      ui.pinError = '';
+      render();
+    });
+  });
+
+  // PIN keys
+  main.querySelectorAll('[data-pin]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = btn.dataset.pin;
+      if (v === '⌫') { ui.pinInput = ui.pinInput.slice(0, -1); ui.pinError = ''; }
+      else if (ui.pinInput.length < 4) {
+        ui.pinInput += v;
+        if (ui.pinInput.length === 4) {
+          if (ui.pinInput === data.pin) { ui.parentUnlocked = true; ui.pinError = ''; }
+          else { ui.pinError = 'Incorrect PIN — try again'; ui.pinInput = ''; }
+        }
+      }
+      render();
+    });
+  });
+
+  // Kid tabs
+  main.querySelectorAll('[data-kid]').forEach(btn => {
+    btn.addEventListener('click', () => { ui.selectedKid = btn.dataset.kid; render(); });
+  });
+
+  // Week nav
+  main.querySelectorAll('[data-week]').forEach(btn => {
+    btn.addEventListener('click', () => { ui.weekOffset += parseInt(btn.dataset.week); render(); });
+  });
+
+  // Toggle chore done
+  main.querySelectorAll('[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const choreId = btn.dataset.toggle;
+      const wk = getWeekKey(ui.weekOffset);
+      const e = getEntry(ui.selectedKid, choreId, wk);
+      if (!e.verified) {
+        setEntry(ui.selectedKid, choreId, wk, { kidDone: !e.kidDone });
+        toast(e.kidDone ? 'Unmarked.' : '✓ Marked done! Waiting for parent approval.');
+        render();
+      }
+    });
+  });
+
+  // Verify chore — using ||| as separator to avoid clashing with date dashes
+  main.querySelectorAll('[data-verify]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const [kidId, choreId, weekKey] = btn.dataset.verify.split('|||');
+      setEntry(kidId, choreId, weekKey, { kidDone: true, verified: true });
+      toast('✓ Approved — added to wallet!');
+      render();
+    });
+  });
+
+  main.querySelectorAll('[data-reject]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const [kidId, choreId, weekKey] = btn.dataset.reject.split('|||');
+      setEntry(kidId, choreId, weekKey, { kidDone: false, verified: false });
+      toast('Chore unmarked.');
+      render();
+    });
+  });
+
+  // Pay out
+  main.querySelectorAll('[data-pay]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const kidId = btn.dataset.pay;
+      const w = getWallet(kidId);
+      if (w.balance <= 0) return;
+      // Record which specific entry keys are being paid out now
+      const alreadyPaidKeys = new Set(
+        data.payments.filter(p => p.kidId === kidId).flatMap(p => p.paidEntryKeys || [])
+      );
+      const nowPaying = Object.entries(data.entries[kidId] || {})
+        .filter(([key, val]) => val.verified && !alreadyPaidKeys.has(key))
+        .map(([key]) => key);
+      data.payments.push({
+        kidId,
+        amount: w.balance,
+        date: new Date().toLocaleDateString('en-CA'),
+        paidEntryKeys: nowPaying,
+      });
+      save();
+      const kid = data.kids.find(k => k.id === kidId);
+      toast(`💸 $${w.balance} paid to ${kid?.name}!`);
+      render();
+    });
+  });
+
+  // Lock
+  const lockBtn = main.querySelector('[data-lock]');
+  if (lockBtn) lockBtn.addEventListener('click', () => {
+    ui.parentUnlocked = false;
+    ui.mode = 'kid';
+    document.querySelectorAll('.mode-tab').forEach(b => b.classList.toggle('active', b.dataset.mode === 'kid'));
+    render();
+  });
+
+  // Add chore
+  main.querySelector('[data-addchore]')?.addEventListener('click', () => {
+    const name = document.getElementById('newChoreName')?.value.trim();
+    const amt = parseFloat(document.getElementById('newChoreAmt')?.value);
+    if (!name) { toast('Enter a chore name'); return; }
+    if (!amt || amt <= 0) { toast('Enter a dollar amount'); return; }
+    data.chores.push({ id: 'c' + Date.now(), name, amount: amt });
+    save(); toast('Chore added!'); render();
+  });
+
+  // Add kid
+  main.querySelector('[data-addkid]')?.addEventListener('click', () => {
+    const name = document.getElementById('newKidName')?.value.trim();
+    const email = document.getElementById('newKidEmail')?.value.trim().toLowerCase();
+    if (!name) { toast('Enter a name'); return; }
+    data.kids.push({
+      id: 'k' + Date.now(),
+      name, email,
+      colorIdx: data.kids.length % KID_COLORS.length,
+      initials: name.slice(0,2).toUpperCase(),
+    });
+    save(); toast(name + ' added!'); render();
+  });
+
+  // Edit kid buttons
+  main.querySelectorAll('[data-editkid]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('editKidPanel').innerHTML = buildEditKidPanel(btn.dataset.editkid);
+      attachEditKidEvents();
+      document.getElementById('editKidPanel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+
+  // Delete chore
+  main.querySelectorAll('[data-delchore]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!confirm('Remove this chore?')) return;
+      data.chores = data.chores.filter(c => c.id !== btn.dataset.delchore);
+      save(); toast('Chore removed.'); render();
+    });
+  });
+
+  // Delete kid
+  main.querySelectorAll('[data-delkid]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const kid = data.kids.find(k => k.id === btn.dataset.delkid);
+      if (!confirm(`Remove ${kid?.name}? Their history will be kept.`)) return;
+      data.kids = data.kids.filter(k => k.id !== btn.dataset.delkid);
+      if (ui.selectedKid === btn.dataset.delkid) ui.selectedKid = data.kids[0]?.id || '';
+      save(); toast('Kid removed.'); render();
+    });
+  });
+
+  // Change PIN
+  main.querySelector('[data-changepin]')?.addEventListener('click', () => {
+    const newPin = document.getElementById('newPin')?.value.trim();
+    if (!/^\d{4}$/.test(newPin)) { toast('PIN must be exactly 4 digits'); return; }
+    data.pin = newPin;
+    save(); toast('✓ PIN updated!');
+    document.getElementById('newPin').value = '';
+  });
+}
+
+function attachEditKidEvents() {
+  const panel = document.getElementById('editKidPanel');
+  panel.querySelector('[data-canceledit]')?.addEventListener('click', () => {
+    panel.innerHTML = '';
+  });
+  panel.querySelectorAll('[data-savekid]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const kidId = btn.dataset.savekid;
+      const kid = data.kids.find(k => k.id === kidId);
+      if (!kid) return;
+      const name = document.getElementById('editKidName')?.value.trim();
+      const email = document.getElementById('editKidEmail')?.value.trim().toLowerCase();
+      if (!name) { toast('Name is required'); return; }
+      kid.name = name;
+      kid.email = email;
+      kid.initials = name.slice(0,2).toUpperCase();
+      save(); toast('✓ Saved!'); render();
+    });
+  });
+}
+
+render();
+</script>
+</body>
+</html>
