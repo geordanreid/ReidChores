@@ -225,19 +225,47 @@ let ui = {
   pinError: '',
 };
 
-// Auto-select kid based on URL hash (for Google account mapping)
-// e.g. index.html#jay or index.html#henrik
+// Decode a JWT payload (base64url) without verifying signature
+function decodeJWTEmail(token) {
+  try {
+    const payload = token.split('.')[1];
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(atob(base64).split('').map(c =>
+      '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+    ).join(''));
+    return JSON.parse(json)?.email || null;
+  } catch(e) { return null; }
+}
+
+// Get email from Cloudflare Access JWT cookie
+function getCFEmail() {
+  try {
+    const match = document.cookie.match(/CF_Authorization=([^;]+)/);
+    if (match) return decodeJWTEmail(match[1]);
+  } catch(e) {}
+  return null;
+}
+
+// Auto-select kid: CF cookie → URL hash → URL email param → first kid
 function initSelectedKid() {
+  // 1. Try Cloudflare Access JWT cookie (most reliable)
+  const cfEmail = getCFEmail();
+  if (cfEmail) {
+    const byEmail = data.kids.find(k => k.email && k.email.toLowerCase() === cfEmail.toLowerCase());
+    if (byEmail) { ui.selectedKid = byEmail.id; return; }
+  }
+  // 2. Try URL hash e.g. #jay or #henrik
   const hash = window.location.hash.replace('#', '').toLowerCase();
   const byHash = data.kids.find(k => k.id === hash || k.name.toLowerCase() === hash);
   if (byHash) { ui.selectedKid = byHash.id; return; }
-  // Check if email in URL params matches a kid
+  // 3. Try ?email= URL param
   const params = new URLSearchParams(window.location.search);
   const email = params.get('email') || '';
   if (email) {
     const byEmail = data.kids.find(k => k.email && k.email.toLowerCase() === email.toLowerCase());
     if (byEmail) { ui.selectedKid = byEmail.id; return; }
   }
+  // 4. Default to first kid
   ui.selectedKid = data.kids[0]?.id || '';
 }
 initSelectedKid();
@@ -542,7 +570,7 @@ function buildParent() {
       <div class="card-header"><h2>👨‍👩‍👧‍👦 Manage kids</h2></div>
       <div class="card-body-pad">
         <div class="info-box">
-          💡 <strong>Tip:</strong> Set each kid's Google email below. When they sign in via Cloudflare Access, add <code>?email=their@gmail.com</code> to the URL in the Cloudflare app policy — their name will be auto-selected. Or just use URL hash: <code>index.html#jay</code>
+          💡 <strong>Tip:</strong> Set each kid's Google email below. When they sign in via Cloudflare Access with that Google account, the app will automatically show their page — no URL tricks needed!
         </div>
         ${kidManageRows}
         <div class="add-row">
