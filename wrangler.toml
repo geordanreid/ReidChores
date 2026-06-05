@@ -3,5 +3,3 @@ compatibility_date = "2025-06-04"
 
 [assets]
 directory = "."
-not_found_handling = "single-page-application"
-serve_directly = true
